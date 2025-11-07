@@ -4,6 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { toast } from '@/components/ui/use-toast';
 import Icon from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
@@ -33,7 +39,7 @@ interface BlockedApp {
 }
 
 const Index = () => {
-  const [goals] = useState<Goal[]>([
+  const [goals, setGoals] = useState<Goal[]>([
     {
       id: '1',
       name: 'Шаги',
@@ -63,7 +69,7 @@ const Index = () => {
     },
   ]);
 
-  const [achievements] = useState<Achievement[]>([
+  const [achievements, setAchievements] = useState<Achievement[]>([
     { id: '1', name: 'Первый шаг', icon: 'Award', unlocked: true, description: 'Выполни первую цель' },
     { id: '2', name: 'Неделя силы', icon: 'Flame', unlocked: true, description: '7 дней подряд' },
     { id: '3', name: 'Марафонец', icon: 'Trophy', unlocked: false, description: '30 дней подряд' },
@@ -72,23 +78,86 @@ const Index = () => {
     { id: '6', name: 'Легенда', icon: 'Crown', unlocked: false, description: '100 дней подряд' },
   ]);
 
-  const [blockedApps] = useState<BlockedApp[]>([
+  const [blockedApps, setBlockedApps] = useState<BlockedApp[]>([
     { id: '1', name: 'Instagram', icon: '📸', unlocked: false },
     { id: '2', name: 'YouTube', icon: '▶️', unlocked: true },
     { id: '3', name: 'TikTok', icon: '🎵', unlocked: false },
     { id: '4', name: 'Telegram', icon: '✈️', unlocked: true },
   ]);
 
-  const [streak] = useState(7);
-  const [level] = useState(12);
-  const [xp] = useState(2450);
+  const [streak, setStreak] = useState(7);
+  const [level, setLevel] = useState(12);
+  const [xp, setXp] = useState(2450);
   const [xpToNext] = useState(3000);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newGoal, setNewGoal] = useState({ name: '', icon: 'Target', target: 100, unit: '', color: 'from-purple-500 to-pink-500' });
 
   const calculateProgress = (current: number, target: number) => {
     return Math.min((current / target) * 100, 100);
   };
 
   const totalProgress = goals.reduce((acc, goal) => acc + calculateProgress(goal.current, goal.target), 0) / goals.length;
+
+  const updateGoalProgress = (goalId: string, change: number) => {
+    setGoals(goals.map(goal => {
+      if (goal.id === goalId) {
+        const newCurrent = Math.max(0, Math.min(goal.target, goal.current + change));
+        const wasCompleted = goal.current >= goal.target;
+        const isNowCompleted = newCurrent >= goal.target;
+        
+        if (!wasCompleted && isNowCompleted) {
+          setXp(prev => prev + 100);
+          toast({ title: '🎉 Цель выполнена!', description: `+100 XP за ${goal.name}` });
+          checkAchievements();
+        }
+        
+        return { ...goal, current: newCurrent };
+      }
+      return goal;
+    }));
+  };
+
+  const addGoal = () => {
+    if (!newGoal.name || !newGoal.unit) {
+      toast({ title: 'Ошибка', description: 'Заполни все поля', variant: 'destructive' });
+      return;
+    }
+    
+    const goal: Goal = {
+      id: Date.now().toString(),
+      name: newGoal.name,
+      icon: newGoal.icon,
+      current: 0,
+      target: newGoal.target,
+      unit: newGoal.unit,
+      color: newGoal.color
+    };
+    
+    setGoals([...goals, goal]);
+    setNewGoal({ name: '', icon: 'Target', target: 100, unit: '', color: 'from-purple-500 to-pink-500' });
+    setIsDialogOpen(false);
+    toast({ title: '✅ Цель добавлена!', description: `${goal.name} создана` });
+  };
+
+  const deleteGoal = (goalId: string) => {
+    setGoals(goals.filter(g => g.id !== goalId));
+    toast({ title: '🗑️ Цель удалена' });
+  };
+
+  const checkAchievements = () => {
+    const completedGoals = goals.filter(g => g.current >= g.target).length;
+    if (completedGoals >= goals.length && goals.length > 0) {
+      setAchievements(prev => prev.map(a => 
+        a.id === '1' ? { ...a, unlocked: true } : a
+      ));
+    }
+  };
+
+  const toggleAppLock = (appId: string) => {
+    setBlockedApps(blockedApps.map(app => 
+      app.id === appId ? { ...app, unlocked: !app.unlocked } : app
+    ));
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
@@ -177,29 +246,153 @@ const Index = () => {
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 flex-1">
                       <div className={cn("p-3 rounded-2xl bg-gradient-to-br", goal.color)}>
                         <Icon name={goal.icon as any} size={24} className="text-white" />
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <h3 className="text-lg font-semibold">{goal.name}</h3>
                         <p className="text-sm text-muted-foreground">
                           {goal.current} / {goal.target} {goal.unit}
                         </p>
                       </div>
                     </div>
-                    <Badge variant={progress === 100 ? "default" : "secondary"} className="text-lg px-3 py-1">
-                      {Math.round(progress)}%
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={progress === 100 ? "default" : "secondary"} className="text-lg px-3 py-1">
+                        {Math.round(progress)}%
+                      </Badge>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => deleteGoal(goal.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Icon name="Trash2" size={18} />
+                      </Button>
+                    </div>
                   </div>
-                  <Progress value={progress} className="h-3" />
+                  <Progress value={progress} className="h-3 mb-4" />
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => updateGoalProgress(goal.id, -Math.ceil(goal.target * 0.1))}
+                      disabled={goal.current === 0}
+                    >
+                      <Icon name="Minus" size={16} className="mr-1" />
+                      -{Math.ceil(goal.target * 0.1)}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => updateGoalProgress(goal.id, Math.ceil(goal.target * 0.1))}
+                      disabled={goal.current >= goal.target}
+                      className="flex-1"
+                    >
+                      <Icon name="Plus" size={16} className="mr-1" />
+                      +{Math.ceil(goal.target * 0.1)}
+                    </Button>
+                    <Button 
+                      variant="default" 
+                      size="sm"
+                      onClick={() => updateGoalProgress(goal.id, goal.target - goal.current)}
+                      disabled={goal.current >= goal.target}
+                      className="bg-gradient-to-r from-purple-500 to-pink-500"
+                    >
+                      <Icon name="CheckCheck" size={16} className="mr-1" />
+                      Выполнить
+                    </Button>
+                  </div>
                 </Card>
               );
             })}
-            <Button className="w-full h-12 text-base" size="lg">
-              <Icon name="Plus" size={20} className="mr-2" />
-              Добавить новую цель
-            </Button>
+            
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full h-12 text-base" size="lg">
+                  <Icon name="Plus" size={20} className="mr-2" />
+                  Добавить новую цель
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Создать новую цель</DialogTitle>
+                  <DialogDescription>
+                    Добавь цель и отслеживай свой прогресс ежедневно
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="name">Название цели</Label>
+                    <Input
+                      id="name"
+                      placeholder="Например: Шаги"
+                      value={newGoal.name}
+                      onChange={(e) => setNewGoal({ ...newGoal, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="icon">Иконка</Label>
+                    <Select value={newGoal.icon} onValueChange={(value) => setNewGoal({ ...newGoal, icon: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Footprints">👣 Шаги</SelectItem>
+                        <SelectItem value="BookOpen">📖 Чтение</SelectItem>
+                        <SelectItem value="Droplets">💧 Вода</SelectItem>
+                        <SelectItem value="Dumbbell">💪 Тренировка</SelectItem>
+                        <SelectItem value="Moon">🌙 Сон</SelectItem>
+                        <SelectItem value="Apple">🍎 Питание</SelectItem>
+                        <SelectItem value="Brain">🧠 Медитация</SelectItem>
+                        <SelectItem value="Target">🎯 Другое</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="target">Целевое значение: {newGoal.target}</Label>
+                    <Slider
+                      value={[newGoal.target]}
+                      onValueChange={(value) => setNewGoal({ ...newGoal, target: value[0] })}
+                      min={10}
+                      max={10000}
+                      step={10}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="unit">Единица измерения</Label>
+                    <Input
+                      id="unit"
+                      placeholder="Например: шагов, страниц, минут"
+                      value={newGoal.unit}
+                      onChange={(e) => setNewGoal({ ...newGoal, unit: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="color">Цвет</Label>
+                    <Select value={newGoal.color} onValueChange={(value) => setNewGoal({ ...newGoal, color: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="from-purple-500 to-pink-500">🟣 Фиолетовый → Розовый</SelectItem>
+                        <SelectItem value="from-blue-500 to-cyan-500">🔵 Синий → Голубой</SelectItem>
+                        <SelectItem value="from-orange-500 to-amber-500">🟠 Оранжевый → Жёлтый</SelectItem>
+                        <SelectItem value="from-green-500 to-emerald-500">🟢 Зелёный → Изумрудный</SelectItem>
+                        <SelectItem value="from-red-500 to-rose-500">🔴 Красный → Розовый</SelectItem>
+                        <SelectItem value="from-indigo-500 to-purple-500">🟣 Индиго → Фиолетовый</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={addGoal} className="w-full">
+                    <Icon name="Check" size={18} className="mr-2" />
+                    Создать цель
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="apps" className="mt-6">
@@ -208,10 +401,11 @@ const Index = () => {
                 <Card 
                   key={app.id}
                   className={cn(
-                    "p-6 text-center transition-all hover:scale-105 animate-scale-in",
+                    "p-6 text-center transition-all hover:scale-105 animate-scale-in cursor-pointer",
                     app.unlocked ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
                   )}
                   style={{ animationDelay: `${index * 100}ms` }}
+                  onClick={() => toggleAppLock(app.id)}
                 >
                   <div className="text-5xl mb-3">{app.icon}</div>
                   <h4 className="font-semibold mb-2">{app.name}</h4>
