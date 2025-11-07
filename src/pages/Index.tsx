@@ -1,11 +1,365 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Icon from '@/components/ui/icon';
+import { cn } from '@/lib/utils';
+
+interface Goal {
+  id: string;
+  name: string;
+  icon: string;
+  current: number;
+  target: number;
+  unit: string;
+  color: string;
+}
+
+interface Achievement {
+  id: string;
+  name: string;
+  icon: string;
+  unlocked: boolean;
+  description: string;
+}
+
+interface BlockedApp {
+  id: string;
+  name: string;
+  icon: string;
+  unlocked: boolean;
+}
 
 const Index = () => {
+  const [goals] = useState<Goal[]>([
+    {
+      id: '1',
+      name: 'Шаги',
+      icon: 'Footprints',
+      current: 6542,
+      target: 10000,
+      unit: 'шагов',
+      color: 'from-purple-500 to-pink-500',
+    },
+    {
+      id: '2',
+      name: 'Чтение',
+      icon: 'BookOpen',
+      current: 12,
+      target: 20,
+      unit: 'страниц',
+      color: 'from-blue-500 to-cyan-500',
+    },
+    {
+      id: '3',
+      name: 'Вода',
+      icon: 'Droplets',
+      current: 5,
+      target: 8,
+      unit: 'стаканов',
+      color: 'from-orange-500 to-amber-500',
+    },
+  ]);
+
+  const [achievements] = useState<Achievement[]>([
+    { id: '1', name: 'Первый шаг', icon: 'Award', unlocked: true, description: 'Выполни первую цель' },
+    { id: '2', name: 'Неделя силы', icon: 'Flame', unlocked: true, description: '7 дней подряд' },
+    { id: '3', name: 'Марафонец', icon: 'Trophy', unlocked: false, description: '30 дней подряд' },
+    { id: '4', name: 'Читатель', icon: 'BookMarked', unlocked: true, description: '100 страниц прочитано' },
+    { id: '5', name: 'Гидратация', icon: 'Droplet', unlocked: false, description: '7 дней по 8 стаканов' },
+    { id: '6', name: 'Легенда', icon: 'Crown', unlocked: false, description: '100 дней подряд' },
+  ]);
+
+  const [blockedApps] = useState<BlockedApp[]>([
+    { id: '1', name: 'Instagram', icon: '📸', unlocked: false },
+    { id: '2', name: 'YouTube', icon: '▶️', unlocked: true },
+    { id: '3', name: 'TikTok', icon: '🎵', unlocked: false },
+    { id: '4', name: 'Telegram', icon: '✈️', unlocked: true },
+  ]);
+
+  const [streak] = useState(7);
+  const [level] = useState(12);
+  const [xp] = useState(2450);
+  const [xpToNext] = useState(3000);
+
+  const calculateProgress = (current: number, target: number) => {
+    return Math.min((current / target) * 100, 100);
+  };
+
+  const totalProgress = goals.reduce((acc, goal) => acc + calculateProgress(goal.current, goal.target), 0) / goals.length;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4 color-black text-black">Добро пожаловать!</h1>
-        <p className="text-xl text-gray-600">тут будет отображаться ваш проект</p>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+      <div className="container max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+        
+        <header className="flex items-center justify-between animate-fade-in">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              FocusQuest
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">Прокачивай себя каждый день 🚀</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <div className="text-2xl font-bold text-primary">Ур. {level}</div>
+              <div className="text-xs text-muted-foreground">{xp}/{xpToNext} XP</div>
+            </div>
+            <Button variant="outline" size="icon" className="rounded-full">
+              <Icon name="User" size={20} />
+            </Button>
+          </div>
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-scale-in">
+          <Card className="p-6 bg-gradient-to-br from-purple-500 to-pink-500 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <Icon name="Flame" size={32} className="animate-pulse-glow" />
+              <div className="text-right">
+                <div className="text-3xl font-bold">{streak}</div>
+                <div className="text-sm opacity-90">дней подряд</div>
+              </div>
+            </div>
+            <Progress value={(streak / 30) * 100} className="h-2 bg-white/30" />
+          </Card>
+
+          <Card className="p-6 bg-gradient-to-br from-blue-500 to-cyan-500 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <Icon name="Target" size={32} />
+              <div className="text-right">
+                <div className="text-3xl font-bold">{Math.round(totalProgress)}%</div>
+                <div className="text-sm opacity-90">выполнено сегодня</div>
+              </div>
+            </div>
+            <Progress value={totalProgress} className="h-2 bg-white/30" />
+          </Card>
+
+          <Card className="p-6 bg-gradient-to-br from-orange-500 to-amber-500 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <Icon name="Trophy" size={32} />
+              <div className="text-right">
+                <div className="text-3xl font-bold">{achievements.filter(a => a.unlocked).length}</div>
+                <div className="text-sm opacity-90">достижений</div>
+              </div>
+            </div>
+            <Progress value={(achievements.filter(a => a.unlocked).length / achievements.length) * 100} className="h-2 bg-white/30" />
+          </Card>
+        </div>
+
+        <Tabs defaultValue="goals" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 h-12">
+            <TabsTrigger value="goals" className="gap-2">
+              <Icon name="Target" size={16} />
+              <span className="hidden sm:inline">Цели</span>
+            </TabsTrigger>
+            <TabsTrigger value="apps" className="gap-2">
+              <Icon name="Lock" size={16} />
+              <span className="hidden sm:inline">Приложения</span>
+            </TabsTrigger>
+            <TabsTrigger value="achievements" className="gap-2">
+              <Icon name="Award" size={16} />
+              <span className="hidden sm:inline">Награды</span>
+            </TabsTrigger>
+            <TabsTrigger value="stats" className="gap-2">
+              <Icon name="BarChart3" size={16} />
+              <span className="hidden sm:inline">Статистика</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="goals" className="space-y-4 mt-6">
+            {goals.map((goal, index) => {
+              const progress = calculateProgress(goal.current, goal.target);
+              return (
+                <Card 
+                  key={goal.id} 
+                  className="p-6 hover:shadow-lg transition-all animate-fade-in"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                      <div className={cn("p-3 rounded-2xl bg-gradient-to-br", goal.color)}>
+                        <Icon name={goal.icon as any} size={24} className="text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold">{goal.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {goal.current} / {goal.target} {goal.unit}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant={progress === 100 ? "default" : "secondary"} className="text-lg px-3 py-1">
+                      {Math.round(progress)}%
+                    </Badge>
+                  </div>
+                  <Progress value={progress} className="h-3" />
+                </Card>
+              );
+            })}
+            <Button className="w-full h-12 text-base" size="lg">
+              <Icon name="Plus" size={20} className="mr-2" />
+              Добавить новую цель
+            </Button>
+          </TabsContent>
+
+          <TabsContent value="apps" className="mt-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {blockedApps.map((app, index) => (
+                <Card 
+                  key={app.id}
+                  className={cn(
+                    "p-6 text-center transition-all hover:scale-105 animate-scale-in",
+                    app.unlocked ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
+                  )}
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="text-5xl mb-3">{app.icon}</div>
+                  <h4 className="font-semibold mb-2">{app.name}</h4>
+                  {app.unlocked ? (
+                    <Badge className="bg-green-500">
+                      <Icon name="Unlock" size={14} className="mr-1" />
+                      Разблокировано
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">
+                      <Icon name="Lock" size={14} className="mr-1" />
+                      Заблокировано
+                    </Badge>
+                  )}
+                </Card>
+              ))}
+            </div>
+            <Card className="mt-6 p-6 bg-gradient-to-br from-purple-100 to-pink-100 border-purple-200">
+              <div className="flex items-start gap-4">
+                <Icon name="Info" size={24} className="text-purple-600 mt-1" />
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">Как разблокировать приложения?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Выполни все дневные цели, чтобы получить доступ к заблокированным приложениям. 
+                    Чем больше целей выполнишь — тем больше времени получишь!
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="achievements" className="mt-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {achievements.map((achievement, index) => (
+                <Card 
+                  key={achievement.id}
+                  className={cn(
+                    "p-6 text-center transition-all hover:scale-105 animate-fade-in",
+                    achievement.unlocked 
+                      ? "bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200" 
+                      : "bg-gray-50 border-gray-200 opacity-60"
+                  )}
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <Icon 
+                    name={achievement.icon as any} 
+                    size={48} 
+                    className={cn(
+                      "mx-auto mb-3",
+                      achievement.unlocked ? "text-yellow-500" : "text-gray-400"
+                    )}
+                  />
+                  <h4 className="font-semibold mb-2">{achievement.name}</h4>
+                  <p className="text-xs text-muted-foreground mb-3">{achievement.description}</p>
+                  {achievement.unlocked && (
+                    <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500">
+                      <Icon name="Check" size={14} className="mr-1" />
+                      Получено
+                    </Badge>
+                  )}
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="stats" className="mt-6 space-y-4">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Icon name="Calendar" size={20} />
+                Календарь активности
+              </h3>
+              <div className="grid grid-cols-7 gap-2">
+                {Array.from({ length: 28 }, (_, i) => {
+                  const hasActivity = Math.random() > 0.3;
+                  return (
+                    <div
+                      key={i}
+                      className={cn(
+                        "aspect-square rounded-lg transition-colors",
+                        hasActivity 
+                          ? "bg-gradient-to-br from-purple-500 to-pink-500" 
+                          : "bg-gray-200"
+                      )}
+                      title={`День ${i + 1}`}
+                    />
+                  );
+                })}
+              </div>
+            </Card>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Icon name="TrendingUp" size={20} />
+                  Недельный прогресс
+                </h3>
+                <div className="space-y-3">
+                  {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day, i) => {
+                    const progress = Math.floor(Math.random() * 100);
+                    return (
+                      <div key={day}>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="font-medium">{day}</span>
+                          <span className="text-muted-foreground">{progress}%</span>
+                        </div>
+                        <Progress value={progress} className="h-2" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Icon name="Zap" size={20} />
+                  Топ целей
+                </h3>
+                <div className="space-y-4">
+                  {goals.map((goal, i) => (
+                    <div key={goal.id} className="flex items-center gap-3">
+                      <div className="text-2xl font-bold text-muted-foreground">#{i + 1}</div>
+                      <div className={cn("p-2 rounded-lg bg-gradient-to-br", goal.color)}>
+                        <Icon name={goal.icon as any} size={20} className="text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium">{goal.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {Math.round(calculateProgress(goal.current, goal.target))}% выполнено
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+
+            <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold text-green-700 mb-1">Отличная работа! 🎉</h3>
+                  <p className="text-green-600">Ты выполнил 65% целей за эту неделю</p>
+                </div>
+                <Icon name="PartyPopper" size={48} className="text-green-500" />
+              </div>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
       </div>
     </div>
   );
